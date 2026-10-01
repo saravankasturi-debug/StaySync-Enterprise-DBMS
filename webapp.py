@@ -572,6 +572,6 @@ elif nav_option == "Spot SQL Console":
             st.dataframe(query_output, use_container_width=True)
         except Exception as err:
             st.error(f"SQL Parser Exception: {err}")
-```
+
 
 
