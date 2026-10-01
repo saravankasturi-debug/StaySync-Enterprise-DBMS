@@ -14,43 +14,37 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Force Pure DAE Dark Navy & Electric Cyan Palette
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
 
-    /* Global App Canvas: Deep Navy Blue */
     html, body, [class*="css"], .stApp, [data-testid="stAppViewContainer"] {
         font-family: 'Inter', sans-serif !important;
         background-color: #0B132B !important;
         color: #FFFFFF !important;
     }
 
-    /* Transparent Top Header */
     [data-testid="stHeader"] {
         background-color: transparent !important;
     }
 
-    /* Left Sidebar: Navy Blue */
     section[data-testid="stSidebar"], [data-testid="stSidebarContent"] {
         background-color: #111D4A !important;
         border-right: 1px solid #1E293B !important;
     }
 
-    /* Force All Text in Sidebar to Pure High-Contrast White */
     section[data-testid="stSidebar"] * {
         color: #FFFFFF !important;
     }
 
-    /* Dark Slate Radio Navigation Cards */
     div[data-testid="stRadio"] > div {
-        gap: 10px;
+        gap: 8px;
     }
     div[data-testid="stRadio"] label {
         background-color: #1C2541 !important;
         border: 1px solid #334155 !important;
         border-radius: 8px !important;
-        padding: 12px 16px !important;
+        padding: 10px 14px !important;
         cursor: pointer !important;
         width: 100% !important;
         transition: all 0.2s ease !important;
@@ -59,11 +53,9 @@ st.markdown("""
         background-color: #232D4F !important;
         border-color: #00B4D8 !important;
     }
-    /* Hide default radio circle dots */
     div[data-testid="stRadio"] label > div:first-child {
         display: none !important;
     }
-    /* Bold White Navigation Text */
     div[data-testid="stRadio"] label p,
     div[data-testid="stRadio"] label span,
     div[data-testid="stRadio"] label div {
@@ -72,7 +64,6 @@ st.markdown("""
         font-weight: 700 !important;
     }
 
-    /* Main Branding Header */
     .brand-title {
         font-size: 30px;
         font-weight: 800;
@@ -86,7 +77,6 @@ st.markdown("""
         color: #00B4D8;
     }
 
-    /* DAE Amber Gold Metric Box */
     .metric-box {
         background-color: #1C2541;
         border: 1px solid #334155;
@@ -113,7 +103,6 @@ st.markdown("""
         margin-top: 6px;
     }
 
-    /* High-Contrast Information Box */
     .info-card-box {
         background-color: #1C2541;
         border: 1px solid #334155;
@@ -136,7 +125,6 @@ st.markdown("""
         line-height: 1.5;
     }
 
-    /* Yellow Accent Reality Check Banner */
     .disclaimer-card {
         background: #1C2541;
         border-left: 5px solid #FFC107;
@@ -148,7 +136,6 @@ st.markdown("""
         line-height: 1.5;
     }
 
-    /* Resale Listing Card */
     .resale-listing-card {
         background-color: #1C2541;
         border: 1px solid #334155;
@@ -161,7 +148,6 @@ st.markdown("""
         border-color: #00B4D8;
     }
 
-    /* Electric Cyan Action Buttons */
     .stButton button {
         background-color: #00B4D8 !important;
         color: #0A192F !important;
@@ -177,7 +163,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. DATABASE INITIALIZATION & 3NF SEEDING
+# 2. DATABASE INITIALIZATION & RELIABLE SEEDING
 # ==========================================
 @st.cache_resource
 def setup_database():
@@ -186,36 +172,57 @@ def setup_database():
     cur.executescript("""
     CREATE TABLE IF NOT EXISTS Guests (
         guest_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT, email TEXT UNIQUE, phone TEXT, credit_card TEXT
+        name TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        phone TEXT,
+        credit_card TEXT
     );
     CREATE TABLE IF NOT EXISTS Hotels (
         hotel_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        hotel_name TEXT, city TEXT, star_rating INTEGER
+        hotel_name TEXT NOT NULL,
+        city TEXT NOT NULL,
+        star_rating INTEGER
     );
     CREATE TABLE IF NOT EXISTS Room_Types (
         room_type_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        type_name TEXT UNIQUE, base_price_per_night REAL, hourly_rate REAL, max_occupancy INTEGER
+        type_name TEXT UNIQUE NOT NULL,
+        base_price_per_night REAL NOT NULL,
+        hourly_rate REAL NOT NULL,
+        max_occupancy INTEGER NOT NULL
     );
     CREATE TABLE IF NOT EXISTS Rooms (
         room_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        hotel_id INTEGER, room_type_id INTEGER, room_number TEXT, room_status TEXT DEFAULT 'AVAILABLE',
+        hotel_id INTEGER,
+        room_type_id INTEGER,
+        room_number TEXT NOT NULL,
+        room_status TEXT DEFAULT 'AVAILABLE',
         FOREIGN KEY (hotel_id) REFERENCES Hotels(hotel_id),
         FOREIGN KEY (room_type_id) REFERENCES Room_Types(room_type_id)
     );
     CREATE TABLE IF NOT EXISTS Reservations (
         booking_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        guest_id INTEGER, hotel_id INTEGER, room_id INTEGER, booking_type TEXT,
-        check_in TEXT, check_out TEXT, total_amount REAL, booking_status TEXT DEFAULT 'CONFIRMED'
+        guest_id INTEGER,
+        hotel_id INTEGER,
+        room_id INTEGER,
+        booking_type TEXT,
+        check_in TEXT,
+        check_out TEXT,
+        total_amount REAL,
+        booking_status TEXT DEFAULT 'CONFIRMED'
     );
     CREATE TABLE IF NOT EXISTS Reservation_Resale (
         resale_id INTEGER PRIMARY KEY AUTOINCREMENT,
-        booking_id INTEGER UNIQUE, original_guest_id INTEGER, new_buyer_guest_id INTEGER,
-        original_price REAL, discounted_price REAL, resale_status TEXT DEFAULT 'ACTIVE'
+        booking_id INTEGER UNIQUE,
+        original_guest_id INTEGER,
+        new_buyer_guest_id INTEGER,
+        original_price REAL,
+        discounted_price REAL,
+        resale_status TEXT DEFAULT 'ACTIVE'
     );
     """)
     conn.commit()
 
-    # Seed Master Properties & Room Types
+    # Seed Master Hotels & Rooms
     cur.execute("SELECT COUNT(*) FROM Hotels")
     if cur.fetchone()[0] == 0:
         cur.executemany("INSERT INTO Hotels (hotel_name, city, star_rating) VALUES (?, ?, ?)", [
@@ -235,12 +242,15 @@ def setup_database():
         ])
         conn.commit()
 
-    # Ingest Seed Profiles from Kaggle Export 'DBMS data set.xlsx'
+    # Seed Baseline Guests (Guaranteed Non-Empty)
     cur.execute("SELECT COUNT(*) FROM Guests")
     if cur.fetchone()[0] == 0:
-        if os.path.exists("DBMS data set.xlsx"):
+        # 1. Try Kaggle Excel if available
+        loaded_from_excel = False
+        excel_path = "DBMS data set.xlsx"
+        if os.path.exists(excel_path):
             try:
-                df = pd.read_excel("DBMS data set.xlsx")
+                df = pd.read_excel(excel_path)
                 for idx, r in df.iterrows():
                     cur.execute("INSERT OR IGNORE INTO Guests (name, email, phone, credit_card) VALUES (?, ?, ?, ?)",
                                 (str(r.get('name', f'Guest {idx+1}')),
@@ -248,14 +258,25 @@ def setup_database():
                                  str(r.get('phone-number', '9848022338')),
                                  str(r.get('credit_card', '************1234'))))
                 conn.commit()
+                loaded_from_excel = True
             except Exception:
                 pass
+
+        # 2. Fallback baseline if Excel wasn't uploaded or failed
+        if not loaded_from_excel:
+            cur.executemany("INSERT OR IGNORE INTO Guests (name, email, phone, credit_card) VALUES (?, ?, ?, ?)", [
+                ("Ernest Barnes", "ernest.barnes@outlook.com", "9848022338", "************4322"),
+                ("Andrea Baker", "andrea.baker@aol.com", "8586376955", "************9157"),
+                ("Saravana Kasthuri", "saravana@adityauniversity.in", "9988776655", "************7788")
+            ])
+            conn.commit()
+
     return conn
 
 conn = setup_database()
 
 # ==========================================
-# 3. LEFT SIDEBAR NAVIGATION (100% VISIBLE)
+# 3. LEFT SIDEBAR NAVIGATION
 # ==========================================
 with st.sidebar:
     st.markdown("""
@@ -275,6 +296,7 @@ with st.sidebar:
         label="Select View",
         options=[
             "Executive Dashboard",
+            "Guest Registration & Profiles",
             "Micro-Stay & Nightly Booking",
             "P2P Resale Marketplace",
             "3NF Database Explorer",
@@ -292,7 +314,7 @@ with st.sidebar:
         </div>
     """, unsafe_allow_html=True)
 
-# Top Header Bar
+# Top Bar Header
 st.markdown(f"""
     <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 12px; margin-bottom: 22px; border-bottom: 1px solid #1E293B;">
         <div class="brand-title">
@@ -357,93 +379,136 @@ if nav_option == "Executive Dashboard":
     st.dataframe(inv_df, use_container_width=True)
 
 # ==========================================
-# 5. VIEW 2: MICRO-STAY & NIGHTLY BOOKING
+# 5. VIEW 2: GUEST REGISTRATION & PROFILES
+# ==========================================
+elif nav_option == "Guest Registration & Profiles":
+    st.caption("Enroll new guest identity or inspect verified guest profiles committed in the 3NF relational schema.")
+
+    reg_c1, reg_c2 = st.columns([1.2, 1.8])
+
+    with reg_c1:
+        st.markdown("#### ➕ Add New Guest Record")
+        with st.form("guest_registration_form"):
+            new_g_name = st.text_input("Full Name", placeholder="e.g. Kasthuri Saravana")
+            new_g_email = st.text_input("Email Address (Unique PK Constraint)", placeholder="saravana@example.com")
+            new_g_phone = st.text_input("Contact Number", placeholder="9848022338")
+            new_g_card = st.text_input("Card Token (Vault Masked)", placeholder="************8899", value="************8899")
+            
+            submit_guest = st.form_submit_button("Commit Guest Registration")
+            
+            if submit_guest:
+                if new_g_name and new_g_email and "@" in new_g_email:
+                    try:
+                        cur = conn.cursor()
+                        cur.execute("""
+                            INSERT INTO Guests (name, email, phone, credit_card)
+                            VALUES (?, ?, ?, ?)
+                        """, (new_g_name, new_g_email, new_g_phone, new_g_card))
+                        conn.commit()
+                        st.success(f"Guest profile #{cur.lastrowid} created! You can now book rooms under this guest.")
+                        st.rerun()
+                    except sqlite3.IntegrityError:
+                        st.error("Error: A guest with this email address already exists.")
+                else:
+                    st.error("Please enter a valid Name and Email address.")
+
+    with reg_c2:
+        st.markdown("#### 👥 Verified Guest Ledger")
+        guests_live = pd.read_sql("SELECT guest_id AS 'Guest ID', name AS 'Name', email AS 'Email Address', phone AS 'Phone', credit_card AS 'Card Token' FROM Guests ORDER BY guest_id DESC", conn)
+        st.dataframe(guests_live, use_container_width=True)
+
+# ==========================================
+# 6. VIEW 3: MICRO-STAY & NIGHTLY BOOKING
 # ==========================================
 elif nav_option == "Micro-Stay & Nightly Booking":
     st.caption("Demonstrating dynamic rate calculation and atomic ACID reservation transactions.")
 
-    g_df = pd.read_sql("SELECT guest_id, name, email FROM Guests LIMIT 25", conn)
+    g_df = pd.read_sql("SELECT guest_id, name, email FROM Guests", conn)
     h_df = pd.read_sql("SELECT hotel_id, hotel_name, city FROM Hotels", conn)
 
-    g_map = {f"{r['name']} ({r['email']})": r['guest_id'] for _, r in g_df.iterrows()}
-    h_map = {f"{r['hotel_name']} - {r['city']}": r['hotel_id'] for _, r in h_df.iterrows()}
+    if g_df.empty:
+        st.warning("No guests found in database. Please register a guest in the 'Guest Registration & Profiles' tab first.")
+    else:
+        g_map = {f"{r['name']} ({r['email']})": r['guest_id'] for _, r in g_df.iterrows()}
+        h_map = {f"{r['hotel_name']} - {r['city']}": r['hotel_id'] for _, r in h_df.iterrows()}
 
-    b_col1, b_col2 = st.columns(2)
+        b_col1, b_col2 = st.columns(2)
 
-    with b_col1:
-        st.markdown("#### 1. Target Allocation")
-        selected_guest_str = st.selectbox("Select Certified Guest Profile", list(g_map.keys()))
-        selected_hotel_str = st.selectbox("Select Target Property", list(h_map.keys()))
-        chosen_hotel_id = h_map[selected_hotel_str]
+        with b_col1:
+            st.markdown("#### 1. Target Allocation")
+            selected_guest_str = st.selectbox("Select Certified Guest Profile", list(g_map.keys()))
+            selected_hotel_str = st.selectbox("Select Target Property", list(h_map.keys()))
+            chosen_hotel_id = h_map[selected_hotel_str]
 
-        vacant_units = pd.read_sql(f"""
-            SELECT r.room_id, r.room_number, rt.type_name, rt.base_price_per_night, rt.hourly_rate
-            FROM Rooms r
-            JOIN Room_Types rt ON r.room_type_id = rt.room_type_id
-            WHERE r.hotel_id = {chosen_hotel_id} AND r.room_status = 'AVAILABLE'
-        """, conn)
+            vacant_units = pd.read_sql(f"""
+                SELECT r.room_id, r.room_number, rt.type_name, rt.base_price_per_night, rt.hourly_rate
+                FROM Rooms r
+                JOIN Room_Types rt ON r.room_type_id = rt.room_type_id
+                WHERE r.hotel_id = {chosen_hotel_id} AND r.room_status = 'AVAILABLE'
+            """, conn)
 
-        if vacant_units.empty:
-            st.error("Zero vacant units currently available in this property.")
-            active_unit_data = None
-        else:
-            unit_map = {
-                f"Unit {row['room_number']} — {row['type_name']} (Nightly: INR {row['base_price_per_night']}, Hourly: INR {row['hourly_rate']})":
-                (row['room_id'], row['base_price_per_night'], row['hourly_rate'])
-                for _, row in vacant_units.iterrows()
-            }
-            selected_unit_str = st.selectbox("Select Available Room", list(unit_map.keys()))
-            active_unit_data = unit_map[selected_unit_str]
-
-    with b_col2:
-        if active_unit_data:
-            st.markdown("#### 2. Pricing & Slot Configuration")
-            unit_pk, daily_rate, hourly_rate = active_unit_data
-            booking_strategy = st.radio("Occupancy Mode", ["MICRO_STAY (Hourly Allocation)", "NIGHTLY (Full Day Allocation)"], horizontal=True)
-
-            if "MICRO_STAY" in booking_strategy:
-                duration_hrs = st.slider("Duration (Hours)", 2, 12, 4)
-                total_computed = duration_hrs * hourly_rate
-                c_in_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-                c_out_time = (datetime.datetime.now() + datetime.timedelta(hours=duration_hrs)).strftime("%Y-%m-%d %H:%M")
-                strategy_type = "MICRO_STAY"
-
-                st.markdown(f"""
-                    <div class="info-card-box">
-                        <div class="card-title-text">Computed Micro-Stay Fare</div>
-                        <div style="font-size: 26px; font-weight: 800; color: #00B4D8;">INR {total_computed:.2f}</div>
-                        <div style="color: #94A3B8; font-size: 13px; margin-top: 4px;">Rate applied: INR {hourly_rate}/hr for {duration_hrs} contiguous hours</div>
-                    </div>
-                """, unsafe_allow_html=True)
+            if vacant_units.empty:
+                st.error("Zero vacant units currently available in this property.")
+                active_unit_data = None
             else:
-                night_units = st.number_input("Duration (Nights)", 1, 14, 1)
-                total_computed = night_units * daily_rate
-                c_in_time = datetime.datetime.now().strftime("%Y-%m-%d 12:00")
-                c_out_time = (datetime.datetime.now() + datetime.timedelta(days=int(night_units))).strftime("%Y-%m-%d 11:00")
-                strategy_type = "NIGHTLY"
+                unit_map = {
+                    f"Unit {row['room_number']} — {row['type_name']} (Nightly: INR {row['base_price_per_night']}, Hourly: INR {row['hourly_rate']})":
+                    (row['room_id'], row['base_price_per_night'], row['hourly_rate'])
+                    for _, row in vacant_units.iterrows()
+                }
+                selected_unit_str = st.selectbox("Select Available Room", list(unit_map.keys()))
+                active_unit_data = unit_map[selected_unit_str]
 
-                st.markdown(f"""
-                    <div class="info-card-box">
-                        <div class="card-title-text">Computed Nightly Tariff</div>
-                        <div style="font-size: 26px; font-weight: 800; color: #00B4D8;">INR {total_computed:.2f}</div>
-                        <div style="color: #94A3B8; font-size: 13px; margin-top: 4px;">Rate applied: INR {daily_rate}/night for {night_units} night(s)</div>
-                    </div>
-                """, unsafe_allow_html=True)
+        with b_col2:
+            if active_unit_data:
+                st.markdown("#### 2. Pricing & Slot Configuration")
+                unit_pk, daily_rate, hourly_rate = active_unit_data
+                booking_strategy = st.radio("Occupancy Mode", ["MICRO_STAY (Hourly Allocation)", "NIGHTLY (Full Day Allocation)"], horizontal=True)
 
-            if st.button("Commit ACID Reservation Transaction", use_container_width=True):
-                cur = conn.cursor()
-                guest_pk = g_map[selected_guest_str]
-                cur.execute("""
-                    INSERT INTO Reservations (guest_id, hotel_id, room_id, booking_type, check_in, check_out, total_amount, booking_status)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, 'CONFIRMED')
-                """, (guest_pk, chosen_hotel_id, unit_pk, strategy_type, c_in_time, c_out_time, total_computed))
-                cur.execute("UPDATE Rooms SET room_status = 'OCCUPIED' WHERE room_id = ?", (unit_pk,))
-                conn.commit()
-                st.success(f"Transaction Committed! Record ID #{cur.lastrowid} written to database. Room updated to OCCUPIED.")
-                st.rerun()
+                if "MICRO_STAY" in booking_strategy:
+                    duration_hrs = st.slider("Duration (Hours)", 2, 12, 4)
+                    total_computed = duration_hrs * hourly_rate
+                    c_in_time = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+                    c_out_time = (datetime.datetime.now() + datetime.timedelta(hours=duration_hrs)).strftime("%Y-%m-%d %H:%M")
+                    strategy_type = "MICRO_STAY"
+
+                    st.markdown(f"""
+                        <div class="info-card-box">
+                            <div class="card-title-text">Computed Micro-Stay Fare</div>
+                            <div style="font-size: 26px; font-weight: 800; color: #00B4D8;">INR {total_computed:.2f}</div>
+                            <div style="color: #94A3B8; font-size: 13px; margin-top: 4px;">Rate applied: INR {hourly_rate}/hr for {duration_hrs} contiguous hours</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    night_units = st.number_input("Duration (Nights)", 1, 14, 1)
+                    total_computed = night_units * daily_rate
+                    c_in_time = datetime.datetime.now().strftime("%Y-%m-%d 12:00")
+                    c_out_time = (datetime.datetime.now() + datetime.timedelta(days=int(night_units))).strftime("%Y-%m-%d 11:00")
+                    strategy_type = "NIGHTLY"
+
+                    st.markdown(f"""
+                        <div class="info-card-box">
+                            <div class="card-title-text">Computed Nightly Tariff</div>
+                            <div style="font-size: 26px; font-weight: 800; color: #00B4D8;">INR {total_computed:.2f}</div>
+                            <div style="color: #94A3B8; font-size: 13px; margin-top: 4px;">Rate applied: INR {daily_rate}/night for {night_units} night(s)</div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                if st.button("Commit ACID Reservation Transaction", use_container_width=True):
+                    cur = conn.cursor()
+                    guest_pk = g_map.get(selected_guest_str)
+                    if guest_pk:
+                        cur.execute("""
+                            INSERT INTO Reservations (guest_id, hotel_id, room_id, booking_type, check_in, check_out, total_amount, booking_status)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, 'CONFIRMED')
+                        """, (guest_pk, chosen_hotel_id, unit_pk, strategy_type, c_in_time, c_out_time, total_computed))
+                        cur.execute("UPDATE Rooms SET room_status = 'OCCUPIED' WHERE room_id = ?", (unit_pk,))
+                        conn.commit()
+                        st.success(f"Transaction Committed! Record ID #{cur.lastrowid} written to database. Room updated to OCCUPIED.")
+                        st.rerun()
 
 # ==========================================
-# 6. VIEW 3: P2P RESALE MARKETPLACE
+# 7. VIEW 4: P2P RESALE MARKETPLACE
 # ==========================================
 elif nav_option == "P2P Resale Marketplace":
     st.caption("Preventing 100% cancellation losses by reselling non-refundable bookings to secondary buyers.")
@@ -502,7 +567,7 @@ elif nav_option == "P2P Resale Marketplace":
         """, conn)
 
         if confirmed_eligible.empty:
-            st.warning("No eligible unlisted bookings found. Complete a reservation in Module 2 first.")
+            st.warning("No eligible unlisted bookings found. Complete a reservation in Module 3 first.")
         else:
             elig_dict = {
                 f"Booking #{r['booking_id']} — {r['name']} at {r['hotel_name']} (Paid: INR {r['total_amount']})":
@@ -532,7 +597,7 @@ elif nav_option == "P2P Resale Marketplace":
                 st.rerun()
 
 # ==========================================
-# 7. VIEW 4: 3NF DATABASE EXPLORER
+# 8. VIEW 5: 3NF DATABASE EXPLORER
 # ==========================================
 elif nav_option == "3NF Database Explorer":
     st.caption("Inspect raw relational tables and schema integrity constraints directly from SQLite engine.")
@@ -549,7 +614,7 @@ elif nav_option == "3NF Database Explorer":
     st.dataframe(table_df, use_container_width=True)
 
 # ==========================================
-# 8. VIEW 5: SPOT SQL CONSOLE
+# 9. VIEW 6: SPOT SQL CONSOLE
 # ==========================================
 elif nav_option == "Spot SQL Console":
     st.caption("Directly execute SQL DQL/DML against the live in-memory database during faculty Viva questioning.")
@@ -572,6 +637,3 @@ elif nav_option == "Spot SQL Console":
             st.dataframe(query_output, use_container_width=True)
         except Exception as err:
             st.error(f"SQL Parser Exception: {err}")
-
-
-
